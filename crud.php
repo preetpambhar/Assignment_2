@@ -69,7 +69,7 @@ class Factory
     //get order by id 
     public function getOrderById($id)
     {
-        $stmt = $this->conn->prepare("SELECT * FROM order WHERE id = ?");
+        $stmt = $this->conn->prepare("SELECT * FROM `order` WHERE id = ?");
         $stmt->execute([$id]);
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
@@ -193,69 +193,149 @@ $db = new Database();
 $factory = new Factory($db);
 
 // Handle API requests
+// if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['entity'])) {
+//     $entity = $_GET['entity'];
+//     if ($entity === 'products') {
+//         if (isset($_GET['id'])) {
+//             $productId = $_GET['id'];
+//             echo json_encode($factory->getProductById($productId));
+//         } else {
+//             echo json_encode($factory->getAllData($entity));
+//         }
+//     }
+//     if ($entity === 'user') {
+//         if (isset($_GET['id'])) {
+//             $userId = $_GET['id'];
+//             echo json_encode($factory->getUserById($userId));
+//         } else {
+//             echo json_encode($factory->getAllData($entity));
+//         }
+//     }
+//     if ($entity === 'cart') {
+//         if (isset($_GET['id'])) {
+//             $cartId = $_GET['id'];
+//             echo json_encode($factory->getCartById($cartId));
+//         } else {
+//             echo json_encode($factory->getAllData($entity));
+//         }
+//     }
+//     if ($entity === 'cart') {
+//         if (isset($_GET['user_id'])) {
+//             $productId = $_GET['user_id'];
+//             echo json_encode($factory->getAllCartItemsByUserId($productId));
+//         } else {
+//             echo json_encode($factory->getAllData($entity));
+//         }
+//     }
+//     if ($entity === 'order') {
+//         if (isset($_GET['id'])) {
+//             $orderId = $_GET['id'];
+//             echo json_encode($factory->getOrderById($orderId));
+//         } else {
+//             echo json_encode($factory->getAllData($entity));
+//         }
+//     }
+//     if ($entity === 'order') {
+//         if (isset($_GET['user_id'])) {
+//             $productId = $_GET['user_id'];
+//             echo json_encode($factory->getAllOrdersByUserId($productId));
+//         } else {
+//             echo json_encode($factory->getAllData($entity));
+//         }
+//     }
+//     if ($entity === 'comment') {
+//         if (isset($_GET['id'])) {
+//             $commentId = $_GET['id'];
+//             echo json_encode($factory->getOrderById($commentId));
+//         } else {
+//             echo json_encode($factory->getAllData($entity));
+//         }
+//     } else {
+//         http_response_code(400);
+//         echo json_encode(array("message" => "Table not found"));
+//     }
+
+// }
+
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['entity'])) {
     $entity = $_GET['entity'];
     if ($entity === 'products') {
         if (isset($_GET['id'])) {
             $productId = $_GET['id'];
-            echo json_encode($factory->getProductById($productId));
+            $product = $factory->getProductById($productId);
+            if ($product) {
+                echo json_encode($product);
+            } else {
+                http_response_code(404);
+                echo json_encode(array("message" => "Product not found"));
+            }
         } else {
             echo json_encode($factory->getAllData($entity));
         }
-    }
-    if ($entity === 'user') {
+    } elseif ($entity === 'user') {
         if (isset($_GET['id'])) {
             $userId = $_GET['id'];
-            echo json_encode($factory->getUserById($userId));
+            $user = $factory->getUserById($userId);
+            if ($user) {
+                echo json_encode($user);
+            } else {
+                http_response_code(404);
+                echo json_encode(array("message" => "User not found"));
+            }
         } else {
             echo json_encode($factory->getAllData($entity));
         }
-    }
-    if ($entity === 'cart') {
+    } elseif ($entity === 'cart') {
         if (isset($_GET['id'])) {
             $cartId = $_GET['id'];
-            echo json_encode($factory->getCartById($cartId));
+            $cart = $factory->getCartById($cartId);
+            if ($cart) {
+                echo json_encode($cart);
+            } else {
+                http_response_code(404);
+                echo json_encode(array("message" => "Cart not found"));
+            }
+        } elseif (isset($_GET['user_id'])) {
+            $userId = $_GET['user_id'];
+            echo json_encode($factory->getAllCartItemsByUserId($userId));
         } else {
             echo json_encode($factory->getAllData($entity));
         }
-    }
-    if ($entity === 'cart') {
-        if (isset($_GET['user_id'])) {
-            $productId = $_GET['user_id'];
-            echo json_encode($factory->getAllCartItemsByUserId($productId));
-        } else {
-            echo json_encode($factory->getAllData($entity));
-        }
-    }
-    if ($entity === 'order') {
+    } elseif ($entity === 'order') {
         if (isset($_GET['id'])) {
             $orderId = $_GET['id'];
-            echo json_encode($factory->getOrderById($orderId));
+            $order = $factory->getOrderById($orderId);
+            if ($order) {
+                echo json_encode($order);
+            } else {
+                http_response_code(404);
+                echo json_encode(array("message" => "Order not found"));
+            }
+        } elseif (isset($_GET['user_id'])) {
+            $userId = $_GET['user_id'];
+            echo json_encode($factory->getAllOrdersByUserId($userId));
         } else {
-            echo json_encode($factory->getAllData($entity));
+            echo json_encode($factory->getAllData('`order`'));
         }
-    }
-    if ($entity === 'order') {
-        if (isset($_GET['user_id'])) {
-            $productId = $_GET['user_id'];
-            echo json_encode($factory->getAllOrdersByUserId($productId));
-        } else {
-            echo json_encode($factory->getAllData($entity));
-        }
-    }
-    if ($entity === 'comment') {
+    } elseif ($entity === 'comment') {
         if (isset($_GET['id'])) {
             $commentId = $_GET['id'];
-            echo json_encode($factory->getOrderById($commentId));
+            $comment = $factory->getCommentById($commentId, $entity);
+            if ($comment) {
+                echo json_encode($comment);
+            } else {
+                http_response_code(404);
+                echo json_encode(array("message" => "Comment not found"));
+            }
         } else {
-            echo json_encode($factory->getAllData($entity));
+            echo json_encode($factory->getAllData('`comments`'));
         }
     } else {
         http_response_code(400);
         echo json_encode(array("message" => "Table not found"));
     }
-
 }
+
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['entity'])) {
     $entity = $_GET['entity'];
