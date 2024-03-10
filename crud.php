@@ -32,7 +32,7 @@ class Factory
     }
 
     // Product CRUD methods
-    public function getAllProducts($table)
+    public function getAllData($table)
     {
         $stmt = $this->conn->prepare("SELECT * FROM $table");
         $stmt->execute();
@@ -80,6 +80,13 @@ class Factory
         $stmt->execute([$userId]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
+    //get comments by id 
+    public function getCommentById($id, $table)
+    {
+        $stmt = $this->conn->prepare("SELECT * FROM comments WHERE id = ?");
+        $stmt->execute([$id]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
     //create product
     public function createProduct($data)
     {
@@ -95,7 +102,7 @@ class Factory
         return $this->conn->lastInsertId();
     }
 
-    //for Cart creation
+    //create an Cart 
     public function createCart($data)
     {
         $stmt = $this->conn->prepare("INSERT INTO cart (product_id, quantity, user_id) VALUES (?, ?, ?)");
@@ -117,7 +124,13 @@ class Factory
 
         return $orderId;
     }
-
+    //create an comment
+    public function createComment($data)
+    {
+        $stmt = $this->conn->prepare("INSERT INTO comments (product_id, user_id, rating, images, comment) VALUES (?, ?, ?, ?, ?)");
+        $stmt->execute([$data['product_id'], $data['user_id'], $data['rating'], $data['images'], $data['comment']]);
+        return $this->conn->lastInsertId();
+    }
 
     // post 
     public function updateProduct($id, $data)
@@ -126,7 +139,7 @@ class Factory
         $stmt->execute([$data['description'], $data['image'], $data['price'], $data['shipping_cost'], $id]);
     }
 
-    public function updateUSer($id, $data)
+    public function updateUser($id, $data)
     {
         $stmt = $this->conn->prepare("UPDATE user SET email = ?, password = ?, username = ?, purchase_history = ?, shipping_address = ? WHERE id = ?");
         $stmt->execute([$data['email'], $data['password'], $data['username'], $data['purchase_history'], $data['shipping_address'], $id]);
@@ -147,9 +160,14 @@ class Factory
         $stmt->execute([$data['product_id']]);
     }
 
+    public function updateComment($id, $data)
+    {
+        $stmt = $this->conn->prepare("UPDATE comments SET product_id = ?, user_id = ?, rating = ?, images = ?, comment = ? WHERE id = ?");
+        $stmt->execute([$data['product_id'], $data['user_id'], $data['rating'], $data['images'], $data['comment'], $id]);
+    }
     //delete
 
-    public function deleteProduct($id, $table)
+    public function deleteData($id, $table)
     {
         $stmt = $this->conn->prepare("DELETE FROM $table WHERE id = ?");
         $stmt->execute([$id]);
@@ -182,9 +200,61 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['entity'])) {
             $productId = $_GET['id'];
             echo json_encode($factory->getProductById($productId));
         } else {
-            echo json_encode($factory->getAllProducts($entity));
+            echo json_encode($factory->getAllData($entity));
         }
     }
+    if ($entity === 'user') {
+        if (isset($_GET['id'])) {
+            $userId = $_GET['id'];
+            echo json_encode($factory->getUserById($userId));
+        } else {
+            echo json_encode($factory->getAllData($entity));
+        }
+    }
+    if ($entity === 'cart') {
+        if (isset($_GET['id'])) {
+            $cartId = $_GET['id'];
+            echo json_encode($factory->getCartById($cartId));
+        } else {
+            echo json_encode($factory->getAllData($entity));
+        }
+    }
+    if ($entity === 'cart') {
+        if (isset($_GET['user_id'])) {
+            $productId = $_GET['user_id'];
+            echo json_encode($factory->getAllCartItemsByUserId($productId));
+        } else {
+            echo json_encode($factory->getAllData($entity));
+        }
+    }
+    if ($entity === 'order') {
+        if (isset($_GET['id'])) {
+            $orderId = $_GET['id'];
+            echo json_encode($factory->getOrderById($orderId));
+        } else {
+            echo json_encode($factory->getAllData($entity));
+        }
+    }
+    if ($entity === 'order') {
+        if (isset($_GET['user_id'])) {
+            $productId = $_GET['user_id'];
+            echo json_encode($factory->getAllOrdersByUserId($productId));
+        } else {
+            echo json_encode($factory->getAllData($entity));
+        }
+    }
+    if ($entity === 'comment') {
+        if (isset($_GET['id'])) {
+            $commentId = $_GET['id'];
+            echo json_encode($factory->getOrderById($commentId));
+        } else {
+            echo json_encode($factory->getAllData($entity));
+        }
+    } else {
+        http_response_code(400);
+        echo json_encode(array("message" => "Table not found"));
+    }
+
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['entity'])) {
@@ -209,6 +279,69 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['entity'])) {
             http_response_code(400);
             echo json_encode(array("message" => "One or more required fields are missing or empty"));
         }
+    } elseif ($entity === 'user') {
+        // Check if the required fields for creating a user exist and are not empty
+        if (
+            isset($postData['email']) && !empty($postData['email']) &&
+            isset($postData['password']) && !empty($postData['password']) &&
+            isset($postData['username']) && !empty($postData['username']) &&
+            isset($postData['purchase_history']) && !empty($postData['purchase_history']) &&
+            isset($postData['shipping_address']) && !empty($postData['shipping_address'])
+        ) {
+            // Create the user
+            $userId = $factory->createUser($postData);
+            echo json_encode(array("id" => $userId));
+        } else {
+            // Return a 400 Bad Request response if any required field is missing or empty
+            http_response_code(400);
+            echo json_encode(array("message" => "One or more required fields are missing or empty"));
+        }
+    } elseif ($entity === 'cart') {
+        // Check if the required fields for creating a cart exist and are not empty
+        if (
+            isset($postData['product_id']) && !empty($postData['product_id']) &&
+            isset($postData['quantity']) && !empty($postData['quantity']) &&
+            isset($postData['user_id']) && !empty($postData['user_id'])
+        ) {
+            // Create the cart
+            $cartId = $factory->createCart($postData);
+            echo json_encode(array("id" => $cartId));
+        } else {
+            // Return a 400 Bad Request response if any required field is missing or empty
+            http_response_code(400);
+            echo json_encode(array("message" => "One or more required fields are missing or empty"));
+        }
+    } elseif ($entity === 'order') {
+        // Check if the required fields for creating an order exist and are not empty
+        if (
+            isset($postData['product_id']) && !empty($postData['product_id']) &&
+            isset($postData['quantity']) && !empty($postData['quantity']) &&
+            isset($postData['user_id']) && !empty($postData['user_id'])
+        ) {
+            // Create the order and delete the corresponding product from the cart
+            $orderId = $factory->createOrder($postData);
+            echo json_encode(array("id" => $orderId));
+        } else {
+            // Return a 400 Bad Request response if any required field is missing or empty
+            http_response_code(400);
+            echo json_encode(array("message" => "One or more required fields are missing or empty"));
+        }
+    } elseif ($entity === 'comments') {
+        // Check if the required fields for creating a comment exist and are not empty
+        if (
+            isset($postData['product_id']) && !empty($postData['product_id']) &&
+            isset($postData['user_id']) && !empty($postData['user_id']) &&
+            isset($postData['rating']) && !empty($postData['rating']) &&
+            isset($postData['comment']) && !empty($postData['comment'])
+        ) {
+            // Create the comment
+            $commentId = $factory->createComment($postData);
+            echo json_encode(array("id" => $commentId));
+        } else {
+            // Return a 400 Bad Request response if any required field is missing or empty
+            http_response_code(400);
+            echo json_encode(array("message" => "One or more required fields are missing or empty"));
+        }
     }
 }
 
@@ -228,6 +361,50 @@ if ($_SERVER['REQUEST_METHOD'] === 'PUT' && isset($_GET['entity']) && isset($_GE
             http_response_code(400);
             echo json_encode(array("message" => "Missing required fields"));
         }
+    } elseif ($entity === 'users') {
+        // Check if the required fields exist in the request data
+        if (isset($putData['email']) && isset($putData['password']) && isset($putData['username']) && isset($putData['purchase_history']) && isset($putData['shipping_address'])) {
+            // Perform the update operation for users
+            $factory->updateUser($id, $putData);
+            echo json_encode(array("message" => "User updated successfully"));
+        } else {
+            // Return a 400 Bad Request response if any required fields are missing
+            http_response_code(400);
+            echo json_encode(array("message" => "Missing required fields"));
+        }
+    } elseif ($entity === 'cart') {
+        // Check if the required fields exist in the request data
+        if (isset($putData['product_id']) && isset($putData['quantity']) && isset($putData['user_id'])) {
+            // Perform the update operation for cart
+            $factory->updateCart($id, $putData);
+            echo json_encode(array("message" => "Cart updated successfully"));
+        } else {
+            // Return a 400 Bad Request response if any required fields are missing
+            http_response_code(400);
+            echo json_encode(array("message" => "Missing required fields"));
+        }
+    } elseif ($entity === 'order') {
+        // Check if the required fields exist in the request data
+        if (isset($putData['product_id']) && isset($putData['quantity']) && isset($putData['user_id'])) {
+            // Perform the update operation for order
+            $factory->updateOrder($id, $putData);
+            echo json_encode(array("message" => "Order updated successfully"));
+        } else {
+            // Return a 400 Bad Request response if any required fields are missing
+            http_response_code(400);
+            echo json_encode(array("message" => "Missing required fields"));
+        }
+    } elseif ($entity === 'comments') {
+        // Check if the required fields exist in the request data
+        if (isset($putData['product_id']) && isset($putData['user_id']) && isset($putData['rating']) && isset($putData['images']) && isset($putData['comment'])) {
+            // Perform the update operation for comments
+            $factory->updateComment($id, $putData);
+            echo json_encode(array("message" => "Comment updated successfully"));
+        } else {
+            // Return a 400 Bad Request response if any required fields are missing
+            http_response_code(400);
+            echo json_encode(array("message" => "Missing required fields"));
+        }
     }
 }
 
@@ -235,9 +412,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'PUT' && isset($_GET['entity']) && isset($_GE
 if ($_SERVER['REQUEST_METHOD'] === 'DELETE' && isset($_GET['entity']) && isset($_GET['id'])) {
     $entity = $_GET['entity'];
     $id = $_GET['id'];
-    if ($entity === 'products') {
 
-        $factory->deleteProduct($id, $entity);
+    if ($entity === 'products') {
+        $factory->deleteData($id, $entity);
+    } elseif (($entity === 'order')) {
+        $factory->deleteOrder($id);
+    } else {
+        http_response_code(400);
+        echo json_encode(array("message" => "Tabel is not found"));
     }
 }
 ?>
